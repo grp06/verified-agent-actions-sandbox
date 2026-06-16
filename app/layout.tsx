@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Verified Agent Actions",
-  description: "A GitHub issue agent secured with Auth0 Token Vault",
+  description: "A starter kit for agent actions secured with Auth0",
 };
 
 export default function RootLayout({

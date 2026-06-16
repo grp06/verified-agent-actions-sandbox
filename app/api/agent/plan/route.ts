@@ -20,7 +20,7 @@ export async function POST() {
       return NextResponse.json(
         {
           code: "authentication_required",
-          error: "Log in before running the agent.",
+          error: "Log in before running the starter flow.",
         },
         { status: 401 },
       );
@@ -30,7 +30,7 @@ export async function POST() {
       return NextResponse.json(
         {
           code: "github_connection_required",
-          error: "Connect GitHub before running the agent.",
+          error: "Connect GitHub before running the starter flow.",
         },
         { status: 409 },
       );

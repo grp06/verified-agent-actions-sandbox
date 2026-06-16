@@ -20,17 +20,14 @@ import type {
   PlanResponse,
 } from "@/lib/demo-types";
 
-const timelineBase = [
-  "Auth0 identifies the signed-in user.",
-  "GitHub is connected through Auth0 Token Vault.",
-  "The app requests a GitHub token server-side.",
-  "The agent inspects the sandbox repo.",
-  "The user reviews the exact write action.",
-];
-
 const loginHref =
   "/auth/login?connection=Username-Password-Authentication";
 const connectGitHubHref = "/vault/github";
+
+type TimelineStep = {
+  complete: boolean;
+  label: string;
+};
 
 function StatusPill({
   tone,
@@ -100,6 +97,36 @@ function IconButton({
   );
 }
 
+function TimelineMarker({
+  complete,
+  current,
+  index,
+}: {
+  complete: boolean;
+  current: boolean;
+  index: number;
+}) {
+  if (complete) {
+    return (
+      <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-emerald-500 bg-emerald-500 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-zinc-950">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs ${
+        current
+          ? "border-amber-400 text-amber-700 dark:border-amber-300 dark:text-amber-200"
+          : "border-zinc-300 text-zinc-500 dark:border-zinc-700 dark:text-zinc-500"
+      }`}
+    >
+      {index + 1}
+    </span>
+  );
+}
+
 export default function Home() {
   const { user, isLoading } = useUser();
   const [status, setStatus] = useState<DemoStatus | null>(null);
@@ -139,14 +166,16 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Unable to create an agent plan.");
+        throw new Error(data.error ?? "Unable to run the starter flow.");
       }
 
       setPlanResponse(data as PlanResponse);
       await loadStatus();
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Unable to create a plan.",
+        caught instanceof Error
+          ? caught.message
+          : "Unable to run the starter flow.",
       );
     } finally {
       setBusyAction(undefined);
@@ -155,7 +184,7 @@ export default function Home() {
 
   const approveAction = async () => {
     if (!planResponse) {
-      setError("Run the agent before approving an action.");
+      setError("Run the starter flow before approving an action.");
       return;
     }
 
@@ -187,19 +216,55 @@ export default function Home() {
     }
   };
 
-  const targetLabel = status?.target
+  const targetLabel = status?.githubConnected && status.target
     ? `${status.target.owner}/${status.target.repo}`
-    : "Sandbox repo";
+    : "Connect GitHub first";
 
   const timeline = useMemo(() => {
-    const finalStep = approvalResponse
+    const issueResult = approvalResponse
       ? approvalResponse.result.status === "already-exists"
-          ? "Existing demo issue found; no duplicate was created."
-          : "Approved issue was created in GitHub."
-      : "Approval is still pending.";
+        ? "Existing demo issue found; no duplicate was created."
+        : "Approved issue was created in GitHub."
+      : "GitHub issue result recorded.";
 
-    return [...timelineBase, finalStep];
-  }, [approvalResponse]);
+    return [
+      {
+        complete: Boolean(user),
+        label: "Signed in with Auth0.",
+      },
+      {
+        complete: Boolean(status?.githubConnected),
+        label: "GitHub connected through Token Vault.",
+      },
+      {
+        complete: Boolean(planResponse?.inspection),
+        label: "Sandbox repo inspected.",
+      },
+      {
+        complete: Boolean(planResponse?.plan),
+        label: "Agent proposed an exact write.",
+      },
+      {
+        complete: Boolean(approvalResponse),
+        label: "User approved the action.",
+      },
+      {
+        complete: Boolean(approvalResponse),
+        label: issueResult,
+      },
+    ] satisfies TimelineStep[];
+  }, [approvalResponse, planResponse, status?.githubConnected, user]);
+
+  const currentTimelineIndex = timeline.findIndex((step) => !step.complete);
+  const isCompleted = Boolean(approvalResponse);
+  const approvalMessage =
+    approvalResponse?.result.status === "already-exists"
+      ? "The approved issue already exists, so no duplicate was created."
+      : "The approved issue was created in GitHub.";
+  const approvedIssue =
+    approvalResponse && "issue" in approvalResponse.result
+      ? approvalResponse.result.issue
+      : null;
 
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-black dark:text-zinc-50">
@@ -214,18 +279,12 @@ export default function Home() {
               Verified Agent Actions
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              A GitHub issue agent that authenticates the user, retrieves
-              delegated GitHub access through Auth0 Token Vault, and asks before
-              it writes.
+              A tiny starter kit for agents that need permission before they
+              act.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {!status ? (
-              <StatusPill tone="zinc">Checking</StatusPill>
-            ) : (
-              <StatusPill tone="zinc">Sandbox only</StatusPill>
-            )}
             {user ? (
               <IconButton href="/logout" variant="secondary">
                 <LogOut className="h-4 w-4" />
@@ -277,7 +336,7 @@ export default function Home() {
             <p className="mt-4 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
               {status?.githubUser
                 ? `Acting as ${status.githubUser.login}`
-                : "Connect GitHub through Auth0 Token Vault before running the agent."}
+                : "Connect GitHub through Auth0 Token Vault before running the starter flow."}
             </p>
             {user && !status?.githubConnected ? (
               <div className="mt-4">
@@ -295,8 +354,9 @@ export default function Home() {
               <StatusPill tone="zinc">{targetLabel}</StatusPill>
             </div>
             <p className="mt-4 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              Writes are allowlisted to this repo and rechecked on the server
-              before every approval.
+              {status?.githubConnected
+                ? "Writes are allowlisted to this repo and rechecked on the server before every approval."
+                : "The sandbox target appears after GitHub is connected."}
             </p>
           </div>
         </section>
@@ -306,24 +366,64 @@ export default function Home() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="flex items-center gap-2 text-lg font-semibold">
-                  <Sparkles className="h-5 w-5" />
-                  Agent plan
+                  {isCompleted ? (
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  ) : (
+                    <Sparkles className="h-5 w-5" />
+                  )}
+                  {isCompleted ? "Action completed" : "Agent Approval Flow"}
                 </h2>
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                  The agent inspects the repo, drafts an issue, then waits.
+                  {isCompleted
+                    ? approvalMessage
+                    : "A starter flow where Auth0 connects GitHub, the agent proposes a write, and the user approves it."}
                 </p>
               </div>
-              <IconButton
-                disabled={!user || !status?.githubConnected || busyAction === "plan"}
-                onClick={runAgent}
-              >
-                <Play className="h-4 w-4" />
-                {busyAction === "plan" ? "Running..." : "Run agent"}
-              </IconButton>
+              {isCompleted ? (
+                <IconButton
+                  onClick={() => {
+                    setApprovalResponse(null);
+                    setPlanResponse(null);
+                  }}
+                  variant="secondary"
+                >
+                  <Play className="h-4 w-4" />
+                  Run again
+                </IconButton>
+              ) : (
+                <IconButton
+                  disabled={
+                    !user || !status?.githubConnected || busyAction === "plan"
+                  }
+                  onClick={runAgent}
+                >
+                  <Play className="h-4 w-4" />
+                  {busyAction === "plan" ? "Running..." : "Run starter flow"}
+                </IconButton>
+              )}
             </div>
 
             {planResponse ? (
               <div className="mt-5 space-y-5">
+                {isCompleted ? (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950">
+                    <p className="text-sm leading-6 text-emerald-800 dark:text-emerald-200">
+                      {approvalMessage}
+                    </p>
+                    {approvedIssue ? (
+                      <a
+                        className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-emerald-900 underline underline-offset-4 dark:text-emerald-100"
+                        href={approvedIssue.html_url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        View issue #{approvedIssue.number}
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
                   <div className="flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300">
                     <GitBranch className="h-4 w-4" />
@@ -360,7 +460,9 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold">Proposed write</p>
+                  <p className="text-sm font-semibold">
+                    {isCompleted ? "Approved write" : "Proposed write"}
+                  </p>
                   <div className="mt-3 rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
                     <p className="text-xs font-medium uppercase text-zinc-500 dark:text-zinc-400">
                       {planResponse.plan.endpoint}
@@ -377,33 +479,35 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <IconButton
-                    disabled={busyAction === "approve"}
-                    onClick={approveAction}
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    {busyAction === "approve"
-                      ? "Approving..."
-                      : "Approve issue creation"}
-                  </IconButton>
-                  <IconButton
-                    disabled={busyAction === "approve"}
-                    onClick={() => {
-                      setApprovalResponse(null);
-                      setPlanResponse(null);
-                    }}
-                    variant="danger"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Reject
-                  </IconButton>
-                </div>
+                {!isCompleted ? (
+                  <div className="flex flex-wrap gap-3">
+                    <IconButton
+                      disabled={busyAction === "approve"}
+                      onClick={approveAction}
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      {busyAction === "approve"
+                        ? "Approving..."
+                        : "Approve issue creation"}
+                    </IconButton>
+                    <IconButton
+                      disabled={busyAction === "approve"}
+                      onClick={() => {
+                        setApprovalResponse(null);
+                        setPlanResponse(null);
+                      }}
+                      variant="danger"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Reject
+                    </IconButton>
+                  </div>
+                ) : null}
               </div>
             ) : (
               <div className="mt-5 rounded-md border border-dashed border-zinc-300 p-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                Connect GitHub, then run the agent to generate the approval
-                payload.
+                Connect GitHub, then run the starter flow to see an agent ask
+                for approval before it writes.
               </div>
             )}
           </div>
@@ -412,42 +516,28 @@ export default function Home() {
             <div className="rounded-md border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
               <h2 className="text-lg font-semibold">Audit timeline</h2>
               <ol className="mt-4 space-y-3">
-                {timeline.map((item, index) => (
-                  <li className="flex gap-3 text-sm" key={item}>
-                    <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-zinc-300 text-xs text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
-                      {index + 1}
-                    </span>
-                    <span className="leading-6 text-zinc-700 dark:text-zinc-300">
-                      {item}
+                {timeline.map((step, index) => (
+                  <li className="flex gap-3 text-sm" key={step.label}>
+                    <TimelineMarker
+                      complete={step.complete}
+                      current={index === currentTimelineIndex}
+                      index={index}
+                    />
+                    <span
+                      className={`leading-6 ${
+                        step.complete
+                          ? "text-zinc-900 dark:text-zinc-100"
+                          : index === currentTimelineIndex
+                            ? "text-zinc-800 dark:text-zinc-200"
+                            : "text-zinc-500 dark:text-zinc-500"
+                      }`}
+                    >
+                      {step.label}
                     </span>
                   </li>
                 ))}
               </ol>
             </div>
-
-            {approvalResponse ? (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 p-5 dark:border-emerald-900 dark:bg-emerald-950">
-                <h2 className="text-lg font-semibold text-emerald-950 dark:text-emerald-100">
-                  Approval result
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-emerald-800 dark:text-emerald-200">
-                  {approvalResponse.result.status === "already-exists"
-                      ? "The demo issue already exists, so the app did not create a duplicate."
-                      : "The approved GitHub issue was created."}
-                </p>
-                {"issue" in approvalResponse.result ? (
-                  <a
-                    className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-emerald-900 underline underline-offset-4 dark:text-emerald-100"
-                    href={approvalResponse.result.issue.html_url}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    View issue #{approvalResponse.result.issue.number}
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         </section>
       </div>

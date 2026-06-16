@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           code: "approval_token_required",
-          error: "Run the agent again before approving the action.",
+          error: "Run the starter flow again before approving the action.",
         },
         { status: 400 },
       );
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           code: "approval_token_invalid",
-          error: "Run the agent again before approving the action.",
+          error: "Run the starter flow again before approving the action.",
         },
         { status: 400 },
       );

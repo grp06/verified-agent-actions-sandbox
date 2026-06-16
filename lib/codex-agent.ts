@@ -201,7 +201,10 @@ function parseIssueDraftJson(text: string) {
   }
 }
 
-function asIssueDraft(value: unknown): CodexIssueDraft {
+function asIssueDraft(
+  value: unknown,
+  backgroundColor: string,
+): CodexIssueDraft {
   if (!value || typeof value !== "object") {
     throw new Error("Codex response was not an object.");
   }
@@ -218,14 +221,19 @@ function asIssueDraft(value: unknown): CodexIssueDraft {
 
   const combined = `${title}\n${reason}\n${body}`;
 
-  if (!/background/i.test(combined) || !/\bwhite\b/i.test(combined)) {
-    throw new Error("Codex response did not describe the white background issue.");
+  if (
+    !/background/i.test(combined) ||
+    !new RegExp(`\\b${backgroundColor}\\b`, "i").test(combined)
+  ) {
+    throw new Error(
+      `Codex response did not describe the ${backgroundColor} background issue.`,
+    );
   }
 
   return { title, reason, body };
 }
 
-function buildPrompt(inspection: RepoInspection) {
+function buildPrompt(inspection: RepoInspection, backgroundColor: string) {
   const issueTitles = inspection.issues
     .slice(0, 5)
     .map((issue) => `- #${issue.number}: ${issue.title}`)
@@ -234,7 +242,7 @@ function buildPrompt(inspection: RepoInspection) {
   return `You are the issue-drafting agent for a local Auth0/GitHub demo.
 
 Task:
-Draft exactly one GitHub issue suggesting a simple app improvement: change the app background color to white.
+Draft exactly one GitHub issue suggesting a simple app improvement: change the app background color to ${backgroundColor}.
 
 Important boundaries:
 - Do not modify files.
@@ -255,7 +263,7 @@ ${issueTitles || "- none"}
 
 Return this JSON shape:
 {
-  "title": "Change the app background to white",
+  "title": "Change the app background to ${backgroundColor}",
   "reason": "One sentence explaining why this tiny change is a safe demo issue.",
   "body": "Markdown issue body with Suggested change and Acceptance criteria sections."
 }
@@ -266,7 +274,7 @@ async function writeSchema(schemaPath: string) {
   await writeFile(schemaPath, JSON.stringify(ISSUE_DRAFT_SCHEMA, null, 2));
 }
 
-async function draftIssue(inspection: RepoInspection) {
+async function draftIssue(inspection: RepoInspection, backgroundColor: string) {
   const runDirectory = await mkdtemp(path.join(tmpdir(), "verified-agent-"));
   const schemaPath = path.join(runDirectory, "issue-draft.schema.json");
   const outputPath = path.join(runDirectory, "issue-draft.json");
@@ -274,7 +282,7 @@ async function draftIssue(inspection: RepoInspection) {
   try {
     await writeSchema(schemaPath);
     await runCodexExec({
-      prompt: buildPrompt(inspection),
+      prompt: buildPrompt(inspection, backgroundColor),
       runDirectory,
       schemaPath,
       outputPath,
@@ -287,7 +295,7 @@ async function draftIssue(inspection: RepoInspection) {
       throw new Error("Codex did not write an issue draft.");
     }
 
-    return asIssueDraft(parseIssueDraftJson(finalMessage));
+    return asIssueDraft(parseIssueDraftJson(finalMessage), backgroundColor);
   } finally {
     await rm(runDirectory, { recursive: true, force: true });
   }
@@ -295,9 +303,10 @@ async function draftIssue(inspection: RepoInspection) {
 
 export async function draftIssueWithCodex(
   inspection: RepoInspection,
+  backgroundColor: string,
 ): Promise<CodexIssueDraft | null> {
   try {
-    return await draftIssue(inspection);
+    return await draftIssue(inspection, backgroundColor);
   } catch (error) {
     console.warn(
       "Codex issue draft failed",

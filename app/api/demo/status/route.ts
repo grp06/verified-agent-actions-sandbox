@@ -33,10 +33,6 @@ export async function GET() {
       githubConnected: false,
       user: session.user,
       connectError: error instanceof Error ? error.message : null,
-      target: {
-        owner: DEMO_TARGET_OWNER,
-        repo: DEMO_TARGET_REPO,
-      },
     });
   }
 }

@@ -126,7 +126,10 @@ export async function createIssueAfterApproval(
   );
 
   const existingDemoIssue = existingIssues.data.find(
-    (issue) => !("pull_request" in issue) && issue.body?.includes(DEMO_MARKER),
+    (issue) =>
+      !("pull_request" in issue) &&
+      issue.title === title &&
+      issue.body?.includes(DEMO_MARKER),
   );
 
   if (existingDemoIssue) {

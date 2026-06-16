@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 import {
   DEMO_MARKER,
   DEMO_TARGET_OWNER,
@@ -6,18 +8,35 @@ import {
 import { draftIssueWithCodex, type CodexIssueDraft } from "@/lib/codex-agent";
 import type { AgentPlan, RepoInspection } from "@/lib/demo-types";
 
-function getFallbackIssueDraft(): CodexIssueDraft {
+const BACKGROUND_COLORS = [
+  "white",
+  "black",
+  "blue",
+  "green",
+  "yellow",
+  "purple",
+  "pink",
+  "orange",
+  "teal",
+  "slate",
+];
+
+function getRandomBackgroundColor() {
+  return BACKGROUND_COLORS[randomInt(BACKGROUND_COLORS.length)];
+}
+
+function getFallbackIssueDraft(backgroundColor: string): CodexIssueDraft {
   return {
-    title: "Change the app background to white",
+    title: `Change the app background to ${backgroundColor}`,
     reason:
       "A tiny visual change is easy to review, safe for the sandbox, and keeps the demo focused on approval instead of code complexity.",
     body: `## Suggested change
 
-Update the app background to white so the demo has a cleaner, simpler visual baseline.
+Update the app background to ${backgroundColor} so the demo has a clear, reviewable visual change.
 
 ## Acceptance criteria
 
-- The main app background is white.
+- The main app background is ${backgroundColor}.
 - Text remains readable with accessible contrast.
 - Authentication, GitHub connection, and approval behavior are unchanged.
 `,
@@ -58,11 +77,12 @@ ${withoutMarker}
 export async function buildIssuePlan(
   inspection: RepoInspection,
 ): Promise<AgentPlan> {
-  const codexDraft = await draftIssueWithCodex(inspection);
-  const draft = codexDraft ?? getFallbackIssueDraft();
+  const backgroundColor = getRandomBackgroundColor();
+  const codexDraft = await draftIssueWithCodex(inspection, backgroundColor);
+  const draft = codexDraft ?? getFallbackIssueDraft(backgroundColor);
 
   return {
-    id: `issue:${DEMO_TARGET_OWNER}/${DEMO_TARGET_REPO}:background-white`,
+    id: `issue:${DEMO_TARGET_OWNER}/${DEMO_TARGET_REPO}:background-${backgroundColor}`,
     action: "create_issue",
     owner: DEMO_TARGET_OWNER,
     repo: DEMO_TARGET_REPO,

@@ -1,7 +1,8 @@
 # Verified Agent Actions
 
-This is a small Auth0 + GitHub demo for showing what changes when an AI agent
-is allowed to act on a user's behalf.
+This is a tiny starter kit for showing how Auth0 can secure agent actions: sign
+in, connect GitHub, let an agent propose a write, approve it, and watch the
+audit trail complete.
 
 The flow is intentionally narrow:
 
@@ -15,8 +16,8 @@ The point is not that the agent is brilliant. The point is that delegated
 access, approval, and auditability become the interesting part once software can
 take action for a user.
 
-This demo skips Auth0 FGA and MCP on purpose. They are good next steps, but
-they are not needed for the core story.
+This starter kit skips Auth0 FGA and MCP on purpose. They are good next steps,
+but they are not needed for the core story.
 
 ## What You Need
 
@@ -127,7 +128,7 @@ authorized.
 
 1. Log in with Auth0.
 2. Connect GitHub.
-3. Click **Run agent**.
+3. Click **Run starter flow**.
 4. Review the repo, endpoint, issue title, and issue body.
 5. Click **Approve issue creation**.
 
@@ -140,8 +141,9 @@ The app calls `codex exec` locally and gives it only sanitized repo facts: repo
 name, default branch, README presence, issue count, connected GitHub user, and a
 few existing issue titles.
 
-Codex drafts a small issue suggesting that the app background be changed to
-white. It does not receive GitHub tokens, write files, or create GitHub issues.
+Codex drafts a small issue suggesting that the app background be changed to one
+of ten randomly selected colors. It does not receive GitHub tokens, write files,
+or create GitHub issues.
 If Codex is unavailable, the app uses a deterministic fallback draft so the demo
 still works on stage.
 
