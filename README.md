@@ -142,7 +142,7 @@ name, default branch, README presence, issue count, connected GitHub user, and a
 few existing issue titles.
 
 Codex drafts a small issue suggesting that the app background be changed to one
-of ten randomly selected colors. It does not receive GitHub tokens, write files,
+of nine randomly selected colors. It does not receive GitHub tokens, write files,
 or create GitHub issues.
 If Codex is unavailable, the app uses a deterministic fallback draft so the demo
 still works on stage.

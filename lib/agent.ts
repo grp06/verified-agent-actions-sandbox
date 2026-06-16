@@ -10,7 +10,6 @@ import type { AgentPlan, RepoInspection } from "@/lib/demo-types";
 
 const BACKGROUND_COLORS = [
   "white",
-  "black",
   "blue",
   "green",
   "yellow",
