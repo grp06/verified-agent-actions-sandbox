@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth0 } from "@/lib/auth0";
-import { getDemoConfig } from "@/lib/demo-config";
+import { DEMO_TARGET_OWNER, DEMO_TARGET_REPO } from "@/lib/demo-config";
 import { getGitHubUser } from "@/lib/github";
 
 export async function GET() {
@@ -14,32 +14,28 @@ export async function GET() {
     });
   }
 
-  const config = getDemoConfig();
-
   try {
     const githubUser = await getGitHubUser();
 
     return NextResponse.json({
       authenticated: true,
       githubConnected: true,
-      dryRun: config.dryRun,
       user: session.user,
       githubUser,
       target: {
-        owner: config.targetOwner,
-        repo: config.targetRepo,
+        owner: DEMO_TARGET_OWNER,
+        repo: DEMO_TARGET_REPO,
       },
     });
   } catch (error) {
     return NextResponse.json({
       authenticated: true,
       githubConnected: false,
-      dryRun: config.dryRun,
       user: session.user,
       connectError: error instanceof Error ? error.message : null,
       target: {
-        owner: config.targetOwner,
-        repo: config.targetRepo,
+        owner: DEMO_TARGET_OWNER,
+        repo: DEMO_TARGET_REPO,
       },
     });
   }

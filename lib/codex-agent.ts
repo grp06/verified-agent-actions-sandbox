@@ -12,7 +12,9 @@ export type CodexIssueDraft = {
 };
 
 const STDERR_LIMIT_BYTES = 64 * 1024;
-const DEFAULT_TIMEOUT_MS = 25_000;
+const CODEX_COMMAND = "codex";
+const CODEX_REASONING_EFFORT = "none";
+const CODEX_TIMEOUT_MS = 25_000;
 
 const ISSUE_DRAFT_SCHEMA = {
   type: "object",
@@ -39,35 +41,15 @@ const ISSUE_DRAFT_SCHEMA = {
 
 type CodexSettings = {
   command: string;
-  model?: string;
   reasoningEffort: string;
   timeoutMs: number;
 };
 
-function parsePositiveInteger(value: string | undefined, fallback: number) {
-  if (!value) {
-    return fallback;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function getCodexSettings(): CodexSettings {
-  const model = process.env.CODEX_AGENT_MODEL?.trim();
-  const reasoningEffort =
-    process.env.CODEX_AGENT_REASONING_EFFORT?.trim() || "none";
-
-  return {
-    command: process.env.CODEX_AGENT_COMMAND ?? "codex",
-    model: model || undefined,
-    reasoningEffort,
-    timeoutMs: parsePositiveInteger(
-      process.env.CODEX_AGENT_TIMEOUT_MS,
-      DEFAULT_TIMEOUT_MS,
-    ),
-  };
-}
+const CODEX_SETTINGS: CodexSettings = {
+  command: CODEX_COMMAND,
+  reasoningEffort: CODEX_REASONING_EFFORT,
+  timeoutMs: CODEX_TIMEOUT_MS,
+};
 
 function getMinimalCodexEnv() {
   const allowedKeys = [
@@ -130,10 +112,6 @@ function getCodexArgs({
     "-c",
     'shell_environment_policy.inherit="none"',
   ];
-
-  if (settings.model) {
-    args.push("--model", settings.model);
-  }
 
   args.push("-");
   return args;
@@ -289,7 +267,6 @@ async function writeSchema(schemaPath: string) {
 }
 
 async function draftIssue(inspection: RepoInspection) {
-  const settings = getCodexSettings();
   const runDirectory = await mkdtemp(path.join(tmpdir(), "verified-agent-"));
   const schemaPath = path.join(runDirectory, "issue-draft.schema.json");
   const outputPath = path.join(runDirectory, "issue-draft.json");
@@ -301,7 +278,7 @@ async function draftIssue(inspection: RepoInspection) {
       runDirectory,
       schemaPath,
       outputPath,
-      settings,
+      settings: CODEX_SETTINGS,
     });
 
     const finalMessage = await readFile(outputPath, "utf8").catch(() => "");
@@ -319,10 +296,6 @@ async function draftIssue(inspection: RepoInspection) {
 export async function draftIssueWithCodex(
   inspection: RepoInspection,
 ): Promise<CodexIssueDraft | null> {
-  if (process.env.CODEX_AGENT_ENABLED === "false") {
-    return null;
-  }
-
   try {
     return await draftIssue(inspection);
   } catch (error) {

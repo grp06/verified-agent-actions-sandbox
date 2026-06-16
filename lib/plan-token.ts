@@ -19,10 +19,10 @@ export class PlanTokenError extends Error {
 }
 
 function getSigningSecret() {
-  const secret = process.env.PLAN_TOKEN_SECRET ?? process.env.AUTH0_SECRET;
+  const secret = process.env.AUTH0_SECRET;
 
   if (!secret) {
-    throw new Error("PLAN_TOKEN_SECRET or AUTH0_SECRET is required.");
+    throw new Error("AUTH0_SECRET is required.");
   }
 
   return secret;

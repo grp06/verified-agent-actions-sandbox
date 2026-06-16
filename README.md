@@ -58,16 +58,6 @@ APP_BASE_URL="http://localhost:3000"
 AUTH0_DOMAIN="YOUR_AUTH0_DOMAIN"
 AUTH0_CLIENT_ID="YOUR_AUTH0_REGULAR_WEB_APP_CLIENT_ID"
 AUTH0_CLIENT_SECRET="YOUR_AUTH0_REGULAR_WEB_APP_CLIENT_SECRET"
-AUTH0_SCOPE="openid profile email offline_access create:me:connected_accounts read:me:connected_accounts delete:me:connected_accounts"
-
-GITHUB_TARGET_OWNER="YOUR_GITHUB_USERNAME_OR_ORG"
-GITHUB_TARGET_REPO="verified-agent-actions-sandbox"
-DEMO_DRY_RUN="true"
-
-CODEX_AGENT_ENABLED="true"
-CODEX_AGENT_COMMAND="codex"
-CODEX_AGENT_REASONING_EFFORT="none"
-CODEX_AGENT_TIMEOUT_MS="25000"
 ```
 
 Start the app:
@@ -141,10 +131,6 @@ authorized.
 4. Review the repo, endpoint, issue title, and issue body.
 5. Click **Approve issue creation**.
 
-By default, `DEMO_DRY_RUN="true"`, so the approval path runs without writing to
-GitHub. Set `DEMO_DRY_RUN="false"` when you want the app to create the issue for
-real.
-
 Repeated runs look for `<!-- verified-agent-actions-demo -->` in open issues so
 the demo does not create duplicates.
 
@@ -159,16 +145,15 @@ white. It does not receive GitHub tokens, write files, or create GitHub issues.
 If Codex is unavailable, the app uses a deterministic fallback draft so the demo
 still works on stage.
 
-The default Codex setting is `model_reasoning_effort="none"`.
+The Codex path uses `codex exec` with `model_reasoning_effort="none"`.
 
 ## Safety Model
 
 - GitHub tokens stay on the server.
 - The browser never receives the GitHub access token.
-- Writes are allowlisted to `GITHUB_TARGET_OWNER/GITHUB_TARGET_REPO`.
+- Writes are allowlisted to `grp06/verified-agent-actions-sandbox`.
 - The approval button sends back a signed, short-lived plan token.
 - The server creates the exact issue draft the user reviewed.
-- Dry-run mode is on by default.
 
 ## Production Next Steps
 

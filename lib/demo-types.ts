@@ -1,7 +1,6 @@
 export type DemoStatus = {
   authenticated: boolean;
   githubConnected: boolean;
-  dryRun?: boolean;
   user?: {
     name?: string;
     email?: string;
@@ -57,11 +56,6 @@ export type RepoInspection = {
 };
 
 export type IssueWriteResult =
-  | {
-      status: "dry-run";
-      title: string;
-      body: string;
-    }
   | {
       status: "already-exists";
       issue: GitHubIssue;

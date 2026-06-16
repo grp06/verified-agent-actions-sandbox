@@ -1,4 +1,8 @@
-import { DEMO_MARKER, getDemoConfig } from "@/lib/demo-config";
+import {
+  DEMO_MARKER,
+  DEMO_TARGET_OWNER,
+  DEMO_TARGET_REPO,
+} from "@/lib/demo-config";
 import { draftIssueWithCodex, type CodexIssueDraft } from "@/lib/codex-agent";
 import type { AgentPlan, RepoInspection } from "@/lib/demo-types";
 
@@ -54,18 +58,17 @@ ${withoutMarker}
 export async function buildIssuePlan(
   inspection: RepoInspection,
 ): Promise<AgentPlan> {
-  const config = getDemoConfig();
   const codexDraft = await draftIssueWithCodex(inspection);
   const draft = codexDraft ?? getFallbackIssueDraft();
 
   return {
-    id: `issue:${config.targetOwner}/${config.targetRepo}:background-white`,
+    id: `issue:${DEMO_TARGET_OWNER}/${DEMO_TARGET_REPO}:background-white`,
     action: "create_issue",
-    owner: config.targetOwner,
-    repo: config.targetRepo,
+    owner: DEMO_TARGET_OWNER,
+    repo: DEMO_TARGET_REPO,
     title: draft.title,
     reason: draft.reason,
-    endpoint: `POST /repos/${config.targetOwner}/${config.targetRepo}/issues`,
+    endpoint: `POST /repos/${DEMO_TARGET_OWNER}/${DEMO_TARGET_REPO}/issues`,
     observations: buildObservations(inspection, Boolean(codexDraft)),
     body: withDemoMarker(draft.body),
   };

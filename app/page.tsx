@@ -193,9 +193,7 @@ export default function Home() {
 
   const timeline = useMemo(() => {
     const finalStep = approvalResponse
-      ? approvalResponse.result.status === "dry-run"
-        ? "Dry run completed without writing to GitHub."
-        : approvalResponse.result.status === "already-exists"
+      ? approvalResponse.result.status === "already-exists"
           ? "Existing demo issue found; no duplicate was created."
           : "Approved issue was created in GitHub."
       : "Approval is still pending.";
@@ -225,10 +223,8 @@ export default function Home() {
           <div className="flex flex-wrap items-center gap-2">
             {!status ? (
               <StatusPill tone="zinc">Checking</StatusPill>
-            ) : status.dryRun ? (
-              <StatusPill tone="amber">Dry run</StatusPill>
             ) : (
-              <StatusPill tone="green">Writes enabled</StatusPill>
+              <StatusPill tone="zinc">Sandbox only</StatusPill>
             )}
             {user ? (
               <IconButton href="/logout" variant="secondary">
@@ -435,9 +431,7 @@ export default function Home() {
                   Approval result
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-emerald-800 dark:text-emerald-200">
-                  {approvalResponse.result.status === "dry-run"
-                    ? "Dry run completed. No GitHub issue was created."
-                    : approvalResponse.result.status === "already-exists"
+                  {approvalResponse.result.status === "already-exists"
                       ? "The demo issue already exists, so the app did not create a duplicate."
                       : "The approved GitHub issue was created."}
                 </p>

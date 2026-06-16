@@ -1,7 +1,12 @@
 import { Octokit } from "octokit";
 
 import { auth0 } from "@/lib/auth0";
-import { DEMO_MARKER, getDemoConfig, isAllowedTarget } from "@/lib/demo-config";
+import {
+  DEMO_MARKER,
+  DEMO_TARGET_OWNER,
+  DEMO_TARGET_REPO,
+  isAllowedTarget,
+} from "@/lib/demo-config";
 import type { IssueWriteResult, RepoInspection } from "@/lib/demo-types";
 
 export class GitHubConnectionRequiredError extends Error {
@@ -49,26 +54,25 @@ export async function getGitHubUser() {
 }
 
 export async function inspectTargetRepo(): Promise<RepoInspection> {
-  const config = getDemoConfig();
   const octokit = await getGitHubClient();
 
   const [userResponse, repoResponse, issuesResponse, readmeFound] =
     await Promise.all([
       octokit.request("GET /user"),
       octokit.request("GET /repos/{owner}/{repo}", {
-        owner: config.targetOwner,
-        repo: config.targetRepo,
+        owner: DEMO_TARGET_OWNER,
+        repo: DEMO_TARGET_REPO,
       }),
       octokit.request("GET /repos/{owner}/{repo}/issues", {
-        owner: config.targetOwner,
-        repo: config.targetRepo,
+        owner: DEMO_TARGET_OWNER,
+        repo: DEMO_TARGET_REPO,
         state: "open",
         per_page: 20,
       }),
       octokit
         .request("GET /repos/{owner}/{repo}/contents/{path}", {
-          owner: config.targetOwner,
-          repo: config.targetRepo,
+          owner: DEMO_TARGET_OWNER,
+          repo: DEMO_TARGET_REPO,
           path: "README.md",
         })
         .then(() => true)
@@ -108,16 +112,6 @@ export async function createIssueAfterApproval(
 ): Promise<IssueWriteResult> {
   if (!isAllowedTarget(owner, repo)) {
     throw new Error("Refusing to write outside the configured demo repository.");
-  }
-
-  const config = getDemoConfig();
-
-  if (config.dryRun) {
-    return {
-      status: "dry-run",
-      title,
-      body,
-    };
   }
 
   const octokit = await getGitHubClient();
